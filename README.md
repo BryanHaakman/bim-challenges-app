@@ -16,11 +16,11 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 - **Custom-per-person** — everyone sets their own goal (what ran in December), scored as % progress
 - **Team** — groups compete against groups (stretch goal for MVP)
 
-**Proof & verification:** photo, video, text, or auto-pulled from Strava. Peer verification with configurable modes — disputes pause a submission until an organizer resolves it.
+**Proof & verification:** photo, video, text, or auto-pulled from Strava. Peer verification with configurable modes — disputes pause a submission until an organizer resolves it. Undisputed submissions auto-approve after 48 hours.
 
 **Stakes & settlement:** optional buy-in collected via Stripe Checkout at join time. On close, the app computes the settlement ledger and triggers automatic payouts to winners via Stripe Connect. No manual e-transfers — it's handled in-app.
 
-**Social layer:** in-challenge feed, user profiles, badges, leaderboards, and 1-on-1 duels.
+**Social layer:** per-challenge feed with emoji reactions, user profiles, badges, leaderboards, and 1-on-1 duels.
 
 ---
 
@@ -34,11 +34,33 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 
 ---
 
+## Build Sequence
+
+| Phase | What ships | Gate |
+|---|---|---|
+| **1 — Core loop** | Auth, challenge creation (head-to-head), join, proof submission, verification, leaderboard, feed | — |
+| **2 — Discovery + social** | Discovery tab, profiles, onboarding badge, Strava integration, 1-on-1 duels | — |
+| **3 — Stakes** | Stripe Checkout, Connect onboarding, ledger, auto-payouts | Legal review complete |
+| **4 — More modes** | Collaborative, custom-per-person, email notifications | — |
+| **5 — Stretch** | Team challenges, co-admin, majority vote verification | Timeline permitting |
+
+---
+
 ## Docs
 
-- [`PRD.md`](./PRD.md) — full product requirements, data model, open questions, and build order
+- [`PRD.md`](./PRD.md) — full product requirements, data model, open questions, and build sequence
 
 ---
 
 ## Open Questions (settle before building)
 
+1. **App name** — decide before the first commit. Shortlist: Challange, App, Grind, Pact, Grit, Stakes, Ante, Reps, Commit.
+2. **Team mode** — MVP or first cut if timeline is tight?
+3. **Custom-per-person mode** — build in parallel with head-to-head/collaborative, or sequence after?
+4. **Who's building?** — dev help vs. feature input only, to set a real timeline.
+5. **Payments legal review** — needs to happen before Phase 3 starts, ideally in parallel with Phase 1–2.
+6. **Zero-completers pot** — refund everyone (proposed default) or organizer picks an alternative?
+7. **Challenge close** — auto on end date, or manual organizer trigger?
+8. **Onboarding badge without Strava** — skip it, or alternative criteria for non-Strava users?
+
+See [`PRD.md §7`](./PRD.md) for full discussion on each.
