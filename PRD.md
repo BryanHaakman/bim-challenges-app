@@ -41,6 +41,7 @@ The app replaces the spreadsheet + group chat with structure, without killing th
 - Badge rules/catalog beyond the one onboarding badge (schema should support more, logic is phase 2)
 - AI/computer-vision proof verification
 - Training-plan adherence tracking for race-training groups
+- Content moderation tooling beyond manual organizer removal (trusted friend-group assumed)
 
 ---
 
@@ -59,28 +60,47 @@ No public/guest browsing beyond discovery previews — signup is required to joi
 ## 4. Core User Stories (detailed)
 
 ### 4.1 Create & Join a Challenge
-- Organizer sets: name, description, **mode** (head-to-head / collaborative / custom-per-person / team), goal type (streak, distance, time, dare), start/end date, proof rules, verification mode, stakes (optional), payout rule (if staked), visibility (public/private), team structure (if team mode)
+- Organizer sets: name, description, **mode** (head-to-head / collaborative / custom-per-person / team), goal type (streak, distance, time, dare), start/end date, **timezone** (defaults to organizer's browser timezone — used for all streak resets and deadline calculations for this challenge), proof rules, verification mode, stakes (optional), payout rule (if staked), visibility (public/private), team structure (if team mode)
 - Any user can create a challenge — no gating
 - Join via: direct invite link (primary acquisition path — preview challenge details before any signup prompt), join code, or discovery tab
 - New-user signup is deferred until they actually initiate joining, not shown upfront
+- **Private challenges** are not listed in discovery but remain fully joinable via invite link or join code. A non-participant landing on a private challenge's invite link sees the preview (name, description, organizer, dates) and can sign up to join — same flow as public, just not discoverable.
 
 ### 4.2 Challenge Modes
-Three shapes, in priority order for MVP:
+Four shapes, in priority order for MVP:
 
 - **Head-to-head**: everyone shares the identical goal, ranked against each other. Ties are allowed and left as ties, no tiebreaker.
 - **Collaborative**: group works toward one shared target. Leaderboard shows both the overall shared progress bar AND a per-person contribution breakdown underneath.
-- **Custom-per-person**: each participant sets their own goal (e.g. one person runs 5k/day, another attempts an Ironman-distance total, another goes for 100k in a day) — same mechanic that ran in December. More complex to build (no common unit for ranking), so scored as % progress toward each person's own target.
-- **Team**: multiple people grouped into a team, competing against other teams (e.g. 2v2). Team score aggregates member proof.
+- **Custom-per-person**: each participant sets their own goal (e.g. one person runs 5k/day, another attempts an Ironman-distance total, another goes for 100k in a day) — same mechanic that ran in December. Scored as % progress toward each person's own target.
+- **Team**: multiple people grouped into a team, competing against other teams (e.g. 2v2). Team score aggregates member proof. Teams are organizer-assigned at challenge creation — no self-select or draft for MVP. Team size is set by the organizer and must be consistent across all teams in a challenge (no uneven teams). If a team member withdraws mid-challenge, their historical proof contributions remain counted toward the team's score; the team continues with fewer active members.
+
+**Goal type × mode compatibility:**
+
+| Goal type | Head-to-head | Collaborative | Custom | Team |
+|---|---|---|---|---|
+| **Streak** | Ranked by current streak (longest wins ties) | Sum of all members' active streak days | % = days_active / personal_target_days | Sum of team members' active streak days |
+| **Distance** | Ranked by total distance logged | Group distance total | % = distance_logged / personal_target | Team distance total |
+| **Time** | Ranked by total time logged | Group time total | % = time_logged / personal_target | Team time total |
+| **Dare** | Binary — completed or not; rank by completion count if multi-dare | Group completion rate | % = 0% or 100% (dare is binary; valid but degenerate — leaderboard shows who did/didn't) | Team completion rate |
 
 ### 4.3 Submit Proof
 - Photo, video, text note, or auto-pulled Strava activity (OAuth + webhook)
-- Strava supports **retroactive backfill** — activities from before someone connected Strava can still count if they fall within the challenge window
+- Strava supports **retroactive backfill** — activities from before someone connected Strava can still count if they fall within the challenge window. Backfill is triggered once at connect time; the server fetches the user's Strava activity history and matches activities against active challenges by date.
 - Strava-sourced proof auto-verifies (skips peer verification) unless flagged
+- **Strava deduplication**: Strava `activity_id` is the idempotent key. If a Strava activity is submitted manually AND later pulled via webhook (or vice versa), the server deduplicates on `strava_activity_id` — only one proof record is kept. Manual submission wins if it already has a verification decision; otherwise the webhook record is canonical.
+- **Strava activity edits**: if Strava sends an update webhook for an activity already used as proof, the server re-checks the updated activity against the challenge rules. If the edit makes it non-qualifying (e.g., distance drops below threshold), the proof status reverts to `pending` and the organizer is notified. If it still qualifies, no status change.
+- **Cross-challenge deduplication**: the same Strava activity can count as proof in multiple simultaneous challenges — there is no restriction. Each challenge is independent.
+- **Proof submissions are per-person** — one proof per submission event. Bulk upload is out of scope for MVP.
 
 ### 4.4 Peer Verify / Dispute
-- Verification mode is an **organizer-configurable setting per challenge**: single approval or auto-approve-unless-challenged (default recommendation — lowest friction, only creates work on actual disputes)
-- A disputed submission is **paused** — does not count toward the leaderboard until resolved. Resolved items are given the submission timestamp. If a challenge could be over but a pending item is blocking challenge completion, it will be marked as pending.
+- Verification mode is an **organizer-configurable setting per challenge**:
+  - **Single approval** — one peer approval marks the proof verified
+  - **Auto-approve-unless-challenged** (default recommendation) — lowest friction, only creates work on actual disputes
+- **Auto-approval timeout**: in `auto_unless_challenged` mode, a proof submission that receives no dispute within **48 hours** of submission is automatically marked `verified`. The 48-hour window starts at submission time.
+- A disputed submission is **paused** — does not count toward the leaderboard until resolved. Resolved items are given the original submission timestamp (not the resolution timestamp) so standings reflect when the work actually happened.
 - Resolution authority: organizer by default, or any co-admin they've whitelisted for that challenge
+- **Challenge close with open disputes**: if the challenge end date passes while disputes remain unresolved, the challenge enters a `settling` state. The organizer has **7 days** to resolve all open disputes. After 7 days, any unresolved dispute is **auto-resolved in the submitter's favor** and the challenge force-closes to settlement. This prevents a single bad-faith dispute from blocking the whole group's payout indefinitely.
+- **Majority vote** mode is listed in the schema for future use but is **not exposed in the MVP UI** — the complexity of defining quorum for variable participant counts makes it a phase 2 feature. Only `single` and `auto_unless_challenged` are selectable at challenge creation.
 
 ### 4.5 Streak / Leaderboard
 - Server-computed and cached per challenge
@@ -88,11 +108,14 @@ Three shapes, in priority order for MVP:
 - Collaborative: group total + individual contribution breakdown
 - Custom: % progress toward each person's own target
 - Team: aggregated team score, ranked against other teams
+- **Streak reset timezone**: all streak reset windows (e.g. "must submit once per calendar day") use the **challenge's timezone**, set by the organizer at creation. A participant in Vancouver and one in Toronto are both on the challenge's clock — no per-participant timezone adjustment.
 
 ### 4.6 Settle Up
 - **Stripe handles stake collection and payout** — participants pay their stake via Stripe Checkout at join time; funds are held and disbursed at challenge close via Stripe Connect
+- **Stripe Connect onboarding** is prompted **when a user joins a staked challenge**, not at challenge close. This gives users time to complete KYC before any payout is triggered. A user who hasn't completed Connect onboarding by the time payouts are computed will have their payout held and re-attempted once onboarding completes (up to 30 days, after which the organizer is notified to handle manually).
 - **Payout rule is organizer-configurable per challenge** (winner-take-all, split among all who completed their goal, or other) — not a single fixed app-wide rule
 - On challenge close, the server computes the settlement ledger and triggers Stripe payouts to winners automatically
+- **Zero-completers default**: if a staked challenge closes with no participants having completed their goal, the full pot is **refunded to all participants pro-rata** (each gets their stake back). This is the default. The organizer can override this at challenge creation to specify an alternative (e.g., pot goes to a charity, pot held for a rematch) — stored in `payout_rule` jsonb. *(See Open Questions #6.)*
 - **No refunds** if a participant drops out or goes quiet — stake stays in the pot by default
 - **Exception**: organizer can manually trigger a Stripe refund for legitimate cases (injury, group-agreed fairness) — separate override from the default no-refund rule
 - Two stake models: peer-funded (participants pay into their own pot via Stripe) and org-sponsored (BIM or sponsor funds a prize pool) — Stripe Connect handles disbursement for both. Prizes could also be physical goods (gear, nutrition, race entries) with manual fulfillment.
@@ -101,8 +124,10 @@ Three shapes, in priority order for MVP:
 Discovery tab reflects challenge lifecycle status, filterable by:
 - **Upcoming** — not started yet, joinable or request-to-join
 - **Active, open** — in progress, still accepting new joiners
-- **Active, closed** — in progress, not accepting new joiners (spectate-only view for non-participants)
+- **Active, closed** — in progress, not accepting new joiners (spectate-only view for non-participants — they can see the leaderboard and feed but cannot submit proof or join)
 - **Closed/archived** — disappears from discovery, still viewable from a participant's profile/history
+
+**Private challenges do not appear in discovery** regardless of status. They are only accessible via direct invite link or join code.
 
 Also supports creating a new challenge directly from this tab.
 
@@ -113,7 +138,20 @@ Includes: profile picture, name, badges, history of completed challenges, curren
 Direct challenge between two users, using the same proof/verification/leaderboard system as group challenges, just scoped to two participants. Discoverable from any profile view.
 
 ### 4.10 Onboarding
-First-run flow: connect Strava, complete one logged activity within the first week → awards first badge. Functions as a built-in tutorial challenge to prevent signup-then-nothing drop-off.
+First-run flow on signup: connect Strava + complete one logged Strava activity within the first week → awards first badge. Any Strava activity type counts (run, ride, swim, workout, etc.) with no minimum distance or duration — the goal is to prove the integration works and build the habit, not gate on performance.
+
+**Strava is optional, not mandatory.** Users who skip Strava connection can still join and participate in challenges using photo/video/text proof. They simply won't earn the onboarding badge and won't have Strava auto-verification available. The onboarding screen surfaces the Strava connection prominently but includes a clear "skip for now" path.
+
+### 4.11 In-Challenge Social Feed
+The feed is visible to all challenge participants (and spectators for active-closed challenges). It is scoped per challenge — there is no global cross-challenge feed for MVP.
+
+**What appears in the feed (in reverse chronological order):**
+- Proof submissions — photo thumbnail or activity summary card, with submitter name/avatar
+- Verification events — "X verified Y's proof" or "X disputed Y's proof" (disputes shown to all participants, not just organizer, to create social accountability)
+- Milestone hits — new personal streak record, goal completion, first submission of the challenge
+- Challenge state changes — challenge started, "X days remaining" reminders (daily at 3 days out), challenge closed
+
+**Reactions:** participants can react to any feed item with a fixed emoji set (e.g., 🔥 💪 👀 😬). No comments for MVP — reactions only. This keeps the feed lightweight and avoids moderation complexity.
 
 ---
 
@@ -123,23 +161,25 @@ First-run flow: connect Strava, complete one logged activity within the first we
 |---|---|---|
 | Auth (email or Google) | P0 | Supabase Auth |
 | User profiles (photo, name, badges, history) | P0 | |
-| Challenge creation (all 4 modes) | P0 | Head-to-head + collaborative first; custom-per-person and team can slip if timeline is tight |
+| Challenge creation (head-to-head + collaborative) | P0 | Custom-per-person and team can slip if timeline is tight |
 | Join via link/code/discovery | P0 | |
 | Discovery tab with lifecycle filtering | P0 | |
 | Proof submission (photo/video/text) | P0 | Supabase Storage |
 | Strava OAuth + webhook + retroactive backfill | P0 | Reuse existing BIM Client ID |
-| Peer verification/dispute (3 configurable modes) | P0 | |
+| Peer verification/dispute (single + auto-unless-challenged) | P0 | Majority vote is phase 2 |
 | Streak/leaderboard computation (per mode) | P0 | Server-authoritative |
-| In-challenge social feed | P0 | Visible to all participants in that challenge |
+| In-challenge social feed with emoji reactions | P0 | Per-challenge, no global feed |
 | Stripe Checkout — stake collection at join time | P0 | Stripe Connect for disbursement |
 | Ledger/settlement calculation w/ configurable payout rule | P0 | Server-triggered Stripe payout on close |
 | Withdrawal + no-refund default + manual Stripe refund override | P0 | |
+| Zero-completers auto-refund default | P0 | |
 | 1-on-1 duel challenges | P0 | Same engine, 2-participant scope |
-| Onboarding challenge + first badge | P0 | |
-| Team-based challenges (2v2 etc.) | P1 | Stretch goal — try for MVP, flag as first thing to cut if timeline slips |
+| Onboarding challenge + first badge | P0 | Strava optional; non-Strava users skip badge |
 | Custom-per-person goal mode | P1 | Can follow head-to-head/collaborative if needed |
+| Team-based challenges (2v2 etc.) | P1 | Stretch goal — first thing to cut if timeline slips |
 | Email notifications (dispute raised, challenge closing, results) | P1 | No push for MVP |
 | Co-admin whitelist per challenge | P1 | |
+| Majority vote verification mode | P2 | Quorum logic deferred |
 | Badge catalog beyond onboarding badge | P2 | Schema-ready, rules TBD |
 | AI/computer-vision proof verification | P2 | Phase 2/3 — design proof storage (esp. video) to not preclude this later |
 | Race-training group mode (adherence tracking) | P2 | Explicitly parked, noted for future |
@@ -166,16 +206,19 @@ First-run flow: connect Strava, complete one logged activity within the first we
 ```
 users
   id, email, display_name, avatar_url, strava_athlete_id, strava_tokens (encrypted),
-  stripe_account_id (Connect account for receiving payouts)
+  stripe_account_id (Connect account for receiving payouts),
+  stripe_onboarding_complete (bool)
 
 challenges
   id, organizer_id, name, description,
   mode (head_to_head | collaborative | custom | team),
-  goal_type (streak|distance|time|dare),
-  start_date, end_date, proof_rules (jsonb),
-  verification_mode (single|majority|auto_unless_challenged),
+  goal_type (streak | distance | time | dare),
+  start_date, end_date, timezone (IANA tz string, e.g. "America/Toronto"),
+  proof_rules (jsonb),
+  verification_mode (single | auto_unless_challenged | majority),
+  verification_timeout_hours (int, default 48 — applies to auto_unless_challenged),
   stake_amount, payout_rule (jsonb),
-  visibility (public|private), status (upcoming|active_open|active_closed|closed),
+  visibility (public | private), status (upcoming | active_open | active_closed | settling | closed),
   join_code
 
 challenge_admins
@@ -183,18 +226,26 @@ challenge_admins
 
 challenge_participants
   id, challenge_id, user_id, team_id (nullable), joined_at,
-  status (active|withdrawn|withdrawn_refunded), personal_goal (jsonb, for custom mode)
+  status (active | withdrawn | withdrawn_refunded), personal_goal (jsonb, for custom mode)
 
 teams
   id, challenge_id, name
 
 proofs
   id, challenge_id, participant_id, submitted_at,
-  type (photo|video|text|strava), content_url, strava_activity_id,
-  status (pending|verified|disputed|rejected)
+  type (photo | video | text | strava), content_url, strava_activity_id,
+  status (pending | verified | disputed | rejected)
 
 verifications
-  id, proof_id, verifier_id, vote (approve|dispute), reason, created_at
+  id, proof_id, verifier_id, vote (approve | dispute), reason, created_at
+
+feed_events
+  id, challenge_id, event_type (proof_submitted | proof_verified | proof_disputed |
+    milestone_hit | challenge_started | challenge_closing | challenge_closed),
+  actor_id (nullable), subject_id (nullable, e.g. proof_id), metadata (jsonb), created_at
+
+feed_reactions
+  id, feed_event_id, user_id, emoji, created_at
 
 standings (denormalized, recomputed on verification)
   id, challenge_id, participant_id, team_id (nullable),
@@ -211,27 +262,75 @@ badges / user_badges
 
 ### Key architectural notes
 - **Server-authoritative math everywhere** — streaks, standings, ledger, never trust client values
-- **Strava via webhook subscription**, not polling — matches activity to challenge rules server-side before auto-verifying, must support backfilled/past-dated activities within the challenge window
+- **All time calculations use the challenge's `timezone` field** — streak resets, deadline enforcement, and "days remaining" calculations all operate in challenge-local time, not UTC and not participant-local time
+- **Strava via webhook subscription**, not polling — matches activity to challenge rules server-side before auto-verifying; must support backfilled/past-dated activities within the challenge window; idempotent on `strava_activity_id`
+- **Strava webhook handles three event types**: `activity.create`, `activity.update`, `activity.delete` — all three must be handled. Update re-evaluates qualification; delete reverts proof to `rejected` and triggers standings recompute
 - **Disputed proof pauses standings recompute** for that participant until resolved
+- **48-hour auto-approval job** — a background job (Vercel cron or Supabase pg_cron) checks for `pending` proofs in `auto_unless_challenged` challenges older than `verification_timeout_hours` and marks them `verified`
+- **`settling` status** — challenge enters this state when end_date passes with open disputes. A 7-day cron job auto-resolves any remaining disputes in the submitter's favor and advances to `closed`
 - **Team mode aggregates member-level standings into a team-level rank** — build the individual layer first, team is a rollup on top
-- Proof storage should assume video may later feed a CV pipeline — don't discard resolution/format in a way that would block that later
+- Proof storage should assume video may later feed a CV pipeline — store original resolution and format, no transcoding that discards quality
 - **Stripe Checkout** collects stakes at join time; **Stripe Connect** handles payout disbursement to winners — Stripe webhooks confirm payment success before participant is marked active in a staked challenge
-- Stripe account onboarding (Connect) required for any user who may receive a payout — prompt at challenge-close if not yet connected
+- **Stripe Connect onboarding** is prompted at join time for staked challenges, not at close — gives users time to complete KYC. Unfinished onboarding holds the payout for up to 30 days before escalating to manual organizer handling
+- **Content moderation**: no automated tooling for MVP. Organizers can remove proof submissions and ban participants from their challenge. Inappropriate content flagged to the broader BIM circle is handled out-of-band. Re-evaluate if the platform opens beyond the current trusted group.
 
 ---
 
 ## 7. Open Questions for the Team (Andrew, Tyler, Tomek)
 
-1. **Name.** Shortlist: App, Grind, Pact, Grit, Stakes, Ante, Reps, Commit.
-2. **Team mode: MVP or cut first if timeline is tight?** It's flagged P1/stretch — worth a explicit go/no-go before building starts.
+1. **App name — decide before the first commit.** Every env var, Supabase project name, Vercel domain, and repo reference will use it. Shortlist: Challange, App, Grind, Pact, Grit, Stakes, Ante, Reps, Commit.
+
+2. **Team mode: MVP or cut?** Flagged P1/stretch — worth an explicit go/no-go before building starts. If it's in, organizer-assigned teams (no draft/self-select) is the proposed MVP simplification. Confirm this is acceptable.
+
 3. **Custom-per-person goal mode: build alongside head-to-head/collaborative, or sequence it after?**
+
 4. **Who's building?** Confirm Tomek/Andrew/Tyler's role — dev help vs. feature input only — to set a real timeline.
-5. **Payments legality** — skill-based contests are generally legal and unregulated in Canada, distinct from chance-based gambling. With Stripe now in MVP scope, worth a real legal consult before launch — especially for org-sponsored pools at scale. Stripe's ToS also requires review for prize/escrow flows.
+
+5. **Payments legality + Stripe legal review — do this before building the payments phase.** Skill-based contests are generally legal and unregulated in Canada, distinct from chance-based gambling. With Stripe in MVP scope, a real legal consult is warranted before launch — especially for org-sponsored pools at scale. Stripe's ToS also requires review for prize/escrow flows specifically. This should happen in parallel with early build phases so it doesn't block launch.
+
+6. **Zero-completers pot: refund or alternative?** The PRD defaults to full pro-rata refund when no one completes a staked challenge. Two alternatives worth discussing: (a) pot rolls to the organizer to redistribute as they see fit, or (b) organizer specifies an override at challenge creation (e.g., "pot goes to a group charity run fund"). Confirm the refund default is acceptable or pick an alternative.
+
+7. **Challenge close trigger: auto or manual?** The PRD assumes the challenge auto-closes on `end_date` and computes the settlement ledger automatically. Is there value in the organizer having a manual "close and settle" button — e.g., if the group wants to end early or extend by a day? Or is auto-close on end_date always the right call?
+
+8. **Onboarding badge without Strava: alternative path or just skip it?** Users who don't connect Strava can't earn the onboarding badge as defined. Options: (a) skip it — they can earn future badges, (b) offer an alternative first-badge criteria (e.g., submit your first proof of any type), or (c) make the badge non-Strava-specific and change criteria to "complete any proof in your first week." Option (c) keeps the badge meaningful without requiring Strava.
+
+9. **Timezone default at challenge creation.** The PRD uses the organizer's browser timezone as the challenge timezone default. Since BIM is a single-city or single-region group, this is probably fine — but worth confirming there's no cross-timezone scenario that would make a single challenge timezone confusing (e.g., some members traveling internationally for a month-long challenge).
+
+10. **Build order sign-off.** See §9 for the proposed phase breakdown — confirm this sequence works for the team before building starts.
 
 ---
 
 ## 8. Build Prompt (for Claude Code / scaffolding)
 
-> Build a Next.js (App Router) + Supabase app called [NAME] for a friend-group fitness challenge platform. Any user can create a challenge in one of four modes: head-to-head (shared goal, ranked against each other, ties allowed), collaborative (shared group target with an overall progress bar plus per-person contribution breakdown), custom-per-person (each participant sets their own goal, scored as % progress), or team (teams aggregate member scores and compete against other teams). Participants join via invite link (preview-before-signup), join code, or a discovery tab filtered by lifecycle status (upcoming / active-open / active-closed-spectate-only / archived). Proof submission via photo/video/text upload (Supabase Storage) or auto-pulled Strava activity (OAuth + webhook, with retroactive backfill support for activities before the user connected Strava). Verification mode is organizer-configurable per challenge: single approval, majority vote, or auto-approve-unless-challenged (disputed proof pauses out of standings until resolved by the organizer or a whitelisted co-admin). Server computes streaks, completion %, and per-mode leaderboards — never trust client-submitted values. Optional stakes per challenge with an organizer-configurable payout rule (winner-take-all, split among completers, etc.); stakes are collected via Stripe Checkout at join time and held until challenge close, at which point the server computes the settlement ledger and triggers Stripe Connect payouts to winners automatically. No refunds on dropout by default; organizer can manually trigger a Stripe refund as an override. Include a first-run onboarding challenge (connect Strava + log one activity in week one → first badge) and a full in-challenge social feed visible to all participants. Include user profiles (photo, name, badges, history, active challenges) clickable from anywhere a user appears, supporting a direct 1-on-1 "duel" challenge action. Auth via Supabase (email + Google). Mobile-first responsive UI, three-tab structure: Your Challenges / Discover / Profile. Deploy target: Vercel, subdomain [name].boisinmotion.com.
+> Build a Next.js (App Router) + Supabase app called [NAME] for a friend-group fitness challenge platform. Any user can create a challenge in one of four modes: head-to-head (shared goal, ranked against each other, ties allowed), collaborative (shared group target with an overall progress bar plus per-person contribution breakdown), custom-per-person (each participant sets their own goal, scored as % progress), or team (teams are organizer-assigned, team scores aggregate member proof, compete against other teams). Participants join via invite link (preview-before-signup), join code, or a discovery tab filtered by lifecycle status (upcoming / active-open / active-closed-spectate-only / archived). Private challenges are invite/code-only and excluded from discovery. Proof submission via photo/video/text upload (Supabase Storage) or auto-pulled Strava activity (OAuth + webhook with retroactive backfill; idempotent on strava_activity_id; handle create/update/delete webhook events). Verification mode is organizer-configurable per challenge: single approval or auto-approve-unless-challenged with a 48-hour timeout (disputed proof pauses out of standings until resolved; if end_date passes with open disputes, challenge enters settling state and auto-resolves disputes in submitter's favor after 7 days). Server computes streaks, completion %, and per-mode leaderboards — never trust client-submitted values. All time calculations use the challenge's IANA timezone. Optional stakes per challenge with an organizer-configurable payout rule (winner-take-all, split among completers, etc.); stakes are collected via Stripe Checkout at join time and held until challenge close, at which point the server computes the settlement ledger and triggers Stripe Connect payouts to winners automatically. Stripe Connect onboarding is prompted at join time for staked challenges, not at close. If no participants complete their goal, the pot is refunded pro-rata by default. No refunds on dropout by default; organizer can manually trigger a Stripe refund as an override. In-challenge social feed (per-challenge, not global) shows proof submissions, verification events, milestone hits, and state changes — participants can react with a fixed emoji set, no comments. Include a first-run onboarding flow (connect Strava + log one activity in week one → first badge; Strava is optional, non-Strava users skip badge). Include user profiles (photo, name, badges, history, active challenges) clickable from anywhere a user appears, supporting a direct 1-on-1 "duel" challenge action. Auth via Supabase (email + Google). Mobile-first responsive UI, three-tab structure: Your Challenges / Discover / Profile. Deploy target: Vercel, subdomain [name].boisinmotion.com.
+
+---
+
+## 9. Build Sequence (proposed)
+
+Build in vertical slices — each phase should be demo-able end to end before the next starts. Later phases gate on Stripe legal review completing in parallel.
+
+**Phase 1 — Core loop (no money, no Strava)**
+Auth (email + Google) → user profile → challenge creation (head-to-head mode only) → join via link + join code → proof submission (photo/text) → peer verification (auto-unless-challenged, 48h timeout) → leaderboard → in-challenge feed with reactions
+
+*Exit criteria: a real challenge can be created, joined by multiple people, proofs submitted and verified, leaderboard updates correctly.*
+
+**Phase 2 — Discovery + social layer**
+Discovery tab with lifecycle filtering → public/private visibility → profile pages (badges, history, active challenges) → onboarding badge flow → Strava OAuth + webhook + backfill → 1-on-1 duel challenges
+
+*Exit criteria: new users can find and join challenges; Strava proof flows end to end; duels work.*
+
+**Phase 3 — Stakes + settlement** *(gate on legal review completing)*
+Stripe Checkout stake collection at join → Stripe Connect onboarding prompt → settlement ledger computation → automatic payouts at close → zero-completers refund → manual refund override → organizer-configurable payout rules
+
+*Exit criteria: a staked challenge can be run start to finish with real Stripe test payments and correct payouts.*
+
+**Phase 4 — Additional modes**
+Collaborative mode → custom-per-person mode → email notifications (dispute raised, challenge closing, results)
+
+*Exit criteria: all three non-team modes work correctly with the verification and leaderboard engine.*
+
+**Phase 5 — Stretch (cut here if timeline is tight)**
+Team-based challenges → co-admin whitelist → majority vote verification mode
 
 ---
