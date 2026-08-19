@@ -18,7 +18,7 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 
 **Proof & verification:** photo, video, text, or auto-pulled from Strava. Peer verification with configurable modes — disputes pause a submission until an organizer resolves it.
 
-**Stakes & settlement:** optional buy-in with configurable payout rules. On close, the app computes who owes whom. No in-app payments — settlement stays via e-transfer for now, tracked as mark-as-settled.
+**Stakes & settlement:** optional buy-in collected via Stripe Checkout at join time. On close, the app computes the settlement ledger and triggers automatic payouts to winners via Stripe Connect. No manual e-transfers — it's handled in-app.
 
 **Social layer:** in-challenge feed, user profiles, badges, leaderboards, and 1-on-1 duels.
 
@@ -30,6 +30,7 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 - **Supabase** — Postgres, Auth (email + Google), Storage
 - **Vercel** — hosting, deploy target: `[name].boisinmotion.com`
 - **Strava** — OAuth + webhook (reusing existing BIM client ID)
+- **Stripe** — Checkout for stake collection, Connect for winner payouts
 
 ---
 
@@ -41,13 +42,3 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 
 ## Open Questions (settle before building)
 
-1. **Name** — Bryan is leaning toward **Commit** (`commit.boisinmotion.com`) or **The Pact**. Full shortlist in the PRD.
-2. **Team mode** — MVP or first thing to cut if timeline gets tight?
-3. **Custom-per-person goal mode** — build alongside head-to-head/collaborative, or sequence after?
-4. **Who's building** — confirm dev roles vs. feature input to set a real timeline.
-
----
-
-## Founders
-
-Bryan Haakman, Andrew, Tyler — Bois in Motion
