@@ -57,7 +57,7 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 1. **App name** — decide before the first commit. Shortlist: Challange, App, Grind, Pact, Grit, Stakes, Ante, Reps, Commit.
 2. **Team mode** — MVP or first cut if timeline is tight?
 3. **Custom-per-person mode** — build in parallel with head-to-head/collaborative, or sequence after?
-4. **Who's building?** — dev help vs. feature input only, to set a real timeline.
+4. ~~**Who's building?**~~ — Resolved: Bryan builds, Andrew gates technical structure, Tyler tests. Branding/MVP scope agreed.
 5. **Payments legal review** — needs to happen before Phase 3 starts, ideally in parallel with Phase 1–2.
 6. **Zero-completers pot** — refund everyone (proposed default) or organizer picks an alternative?
 7. **Challenge close** — auto on end date, or manual organizer trigger?

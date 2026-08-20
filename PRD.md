@@ -67,6 +67,8 @@ The app replaces the spreadsheet + group chat with structure — verified proof,
 | **Co-admin** | Organizer can whitelist other participants as co-admins to help manage the challenge and resolve disputes |
 | **Participant** | Joins a challenge, submits proof, verifies/disputes others' proof |
 
+**Build team:** Bryan builds (vibe coding). Andrew gates technical structure/architecture approval. Tyler owns testing. Branding and MVP feature scope are agreed across all three.
+
 No public/guest browsing beyond discovery previews — signup is required to join a challenge, not required to preview a challenge via invite link.
 
 ---
@@ -319,7 +321,7 @@ badges / user_badges
 
 3. **Custom-per-person goal mode: build alongside head-to-head/collaborative, or sequence it after?**
 
-4. **Who's building?** Confirm Andrew/Tyler's role — dev help vs. feature input only — to set a real timeline. Bryan happy to vibe code with support / review / feedback.
+4. ~~**Who's building?**~~ **Resolved:** Bryan is building (vibe coding). Andrew gates technical structure/architecture approval. Tyler owns testing. All three aligned on branding and MVP feature scope.
 
 5. **Payments legality + Stripe legal review — do this before building the payments phase.** Skill-based contests are generally legal and unregulated in Canada, distinct from chance-based gambling. With Stripe in MVP scope, a real legal consult is warranted before launch — especially for org-sponsored pools at scale. Stripe's ToS also requires review for prize/escrow flows specifically. This should happen in parallel with early build phases so it doesn't block launch.
 
