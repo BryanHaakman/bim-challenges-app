@@ -125,6 +125,7 @@ Four shapes, in priority order for MVP:
 - Custom: % progress toward each person's own target
 - Team: aggregated team score, ranked against other teams
 - **Streak reset timezone**: all streak reset windows (e.g. "must submit once per calendar day") use the **challenge's timezone**, set by the organizer at creation. A participant in Vancouver and one in Toronto are both on the challenge's clock — no per-participant timezone adjustment.
+- **Display vs. computation (confirmed):** the challenge timezone is authoritative for *computation only* (streak resets, deadlines, "days remaining"). Any timestamp shown to a user in the UI — deadlines, feed event times, "days remaining" — is **displayed converted to that viewer's own local timezone**, so it reads as the actual time where they are, even though the underlying reset/deadline logic stays anchored to the challenge's timezone.
 
 ### 4.6 Settle Up
 - **Stripe handles stake collection and payout** — participants pay their stake via Stripe Checkout at join time; funds are held and disbursed at challenge close via Stripe Connect
@@ -300,6 +301,7 @@ badges / user_badges
 ### Key architectural notes
 - **Server-authoritative math everywhere** — streaks, standings, ledger, never trust client values
 - **All time calculations use the challenge's `timezone` field** — streak resets, deadline enforcement, and "days remaining" calculations all operate in challenge-local time, not UTC and not participant-local time
+- **Client-side display converts to viewer-local time**: store/compute in UTC + challenge `timezone`, but render any user-facing timestamp (deadlines, feed events, "days remaining") in the viewing user's own browser timezone — computation and display are separate concerns
 - **Strava via webhook subscription**, not polling — matches activity to challenge rules server-side before auto-verifying; must support backfilled/past-dated activities within the challenge window; idempotent on `strava_activity_id`
 - **Strava webhook handles three event types**: `activity.create`, `activity.update`, `activity.delete` — all three must be handled. Update re-evaluates qualification; delete reverts proof to `rejected` and triggers standings recompute
 - **Disputed proof pauses standings recompute** for that participant until resolved
@@ -331,7 +333,7 @@ badges / user_badges
 
 8. **Onboarding badge without Strava: alternative path or just skip it?** Users who don't connect Strava can't earn the onboarding badge as defined. Options: (a) skip it — they can earn future badges, (b) offer an alternative first-badge criteria (e.g., submit your first proof of any type), or (c) make the badge non-Strava-specific and change criteria to "complete any proof in your first week." Option (c) keeps the badge meaningful without requiring Strava.
 
-9. **Timezone default at challenge creation.** Defaults to organizer's browser timezone. Confirm this works for the group — any members who travel internationally for an extended period during a challenge would be on a different clock.
+9. ~~**Timezone default at challenge creation.**~~ **Resolved:** defaults to organizer's browser timezone, confirmed. Underlying streak/deadline computation stays anchored to the challenge's timezone, but the UI displays times converted to each viewer's own local timezone so it reads as the actual time in their zone.
 
 10. **Build order sign-off.** See §9 for the proposed phase breakdown — confirm this sequence works for the team before building starts.
 
