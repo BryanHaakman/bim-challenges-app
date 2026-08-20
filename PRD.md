@@ -7,9 +7,23 @@
 
 ## 1. Problem & Opportunity
 
-The December challenge (streaks, dares, workouts, self-organized in group chat + spreadsheet) proved the concept — engagement was way higher than expected. Manual tracking broke down at two points: no single source of truth for verification, and money/stakes were a headache to calculate and collect.
+### Opportunity
+The December challenge (streaks, dares, workouts, self-organized in group chat + spreadsheet) proved the concept — engagement was way higher than expected. That's a real signal, not just a hunch: BIM's circle already showed it will show up, log proof, and put money on the line for a shared challenge without much prompting. The app is about capturing that demand with something purpose-built instead of duct tape.
 
-The app replaces the spreadsheet + group chat with structure, without killing the scrappy, social vibe that made December work. The feed and social layer are core.
+### Pain Points (from December)
+- **No single source of truth for verification** — proof lived scattered across group chat messages, easy to lose track of, no reliable way to look back and confirm who actually did what
+- **Money/stakes were a headache** — manual spreadsheet math for who owes what, manual e-transfer collection and chasing people down
+- **No persistent record** — once the group chat moved on, streaks/results/history weren't preserved anywhere durable
+- **Everything was manually refereed** — no automated reminders, no structured way to raise or resolve a dispute, the organizer had to manually referee every edge case
+
+### Value Proposition
+The app replaces the spreadsheet + group chat with structure — verified proof, computed leaderboards, automated settlement — without killing the scrappy, social vibe that made December work. The feed and social layer are core, not an afterthought: this should feel like the thing the group already does, just with less friction and fewer arguments over who owes who.
+
+### ICP (Ideal Participant Profile)
+- **Who**: BIM's existing social circle — people who already know each other and already ran the December challenge informally. Not a general fitness-app audience, not a cold-acquisition product.
+- **Profile**: recreational endurance athletes / fitness enthusiasts, comfortable putting real money on the line with friends, already on Strava or willing to log manually
+- **Platform**: mobile-first — submitting proof, checking the leaderboard, and reacting to the feed will mostly happen on a phone, not desktop
+- *(TBD — confirm with team: expected group/challenge size, and whether this stays scoped to one friend circle or there's near-term appetite to widen within BIM's broader following)*
 
 **Single-tenant.** No multi-group support, no friends/follow system, no DMs. This is BIM's app for BIM's circle. Multi-group is a future direction but not in scope.
 
@@ -187,7 +201,23 @@ The feed is visible to all challenge participants (and spectators for active-clo
 
 ---
 
-## 6. Technical Architecture
+## 6. Branding & Design
+
+Branding and visual design aren't decided yet and need a deliberate pass before UI build starts in earnest — a real design consideration, not something to sort out ad hoc mid-Phase-1.
+
+**Process:**
+1. **Discuss & gather ideas** — align on tone (scrappy/social vs. polished/athletic), reference apps/inspiration, and whether to inherit existing BIM brand assets (logo, colors, fonts) or depart from them
+2. **Draft initial directions** — build a small set of visual directions (color palette, typography, component style, a few key screens) using Claude Design, so the team is reacting to something concrete instead of describing preferences in the abstract
+3. **Team approval gate** — the team reviews the drafted directions and signs off on one before it's built into the app. This is a checkpoint, not a formality — building UI against an unapproved direction risks throwaway work
+4. **Lock initial design system** — once approved, the chosen direction becomes the baseline design system (colors, type scale, spacing, core components) that Phase 1 UI work builds against. Refinement continues after, but the direction itself shouldn't flip mid-build
+
+**Scope for MVP:** enough of a design system to build Phase 1 consistently (buttons, cards, leaderboard rows, feed items, proof cards) — not a full brand guidelines document or component library up front.
+
+*(See Open Questions #11 for timing relative to Phase 1 build start.)*
+
+---
+
+## 7. Technical Architecture
 
 **Stack:** Next.js (App Router) + Supabase (Postgres, Auth, Storage) + Vercel + Sentry + PostHog + Resend + React Email.
 
@@ -281,7 +311,7 @@ badges / user_badges
 
 ---
 
-## 7. Open Questions for the Team (Andrew, Tyler, Tomek)
+## 8. Open Questions for the Team (Andrew, Tyler, Tomek)
 
 1. **App name** Shortlist: Challenge, App, Grind, Pact, Grit, Stakes, Ante, Reps, Commit.
 
@@ -303,13 +333,17 @@ badges / user_badges
 
 10. **Build order sign-off.** See §9 for the proposed phase breakdown — confirm this sequence works for the team before building starts.
 
+11. **Branding/design approval timing.** See §6. Does the branding/design pass (discuss → draft directions in Claude Design → team approval) complete before Phase 1 build starts, or run in parallel with early Phase 1 work? Recommend locking the direction before UI-heavy Phase 1 work begins to avoid rebuilding screens against a changed direction.
+
 ---
 
-## 8. Build Sequence (proposed)
+## 9. Build Sequence (proposed)
 
 Build in vertical slices — each phase should be demo-able end to end before the next starts. Later phases gate on Stripe legal review completing in parallel.
 
 **Phase 1 — Core loop (no money, no Strava)**
+*Gated on: initial branding/design direction approved (see §6) — Phase 1 UI work builds against the approved design system.*
+
 Auth (email + Google) → user profile → challenge creation (head-to-head mode only) → join via link + join code → proof submission (photo/text) → peer verification (auto-unless-challenged, 48h timeout) → leaderboard → in-challenge feed with reactions
 
 *Exit criteria: a real challenge can be created, joined by multiple people, proofs submitted and verified, leaderboard updates correctly.*
