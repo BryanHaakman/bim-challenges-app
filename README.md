@@ -10,15 +10,15 @@ Born from the December challenge — streaks, dares, workouts, stakes — that r
 
 A mobile-first web app where any BIM member can create a fitness challenge, invite the group, submit proof, verify each other's work, and settle up. No spreadsheets. No chasing people for e-transfers in the group chat.
 
-**Four challenge modes:**
+**Challenge modes:**
 - **Head-to-head** — everyone chases the same goal, ranked against each other
 - **Collaborative** — group works toward a shared target, contribution breakdown per person
 - **Custom-per-person** — everyone sets their own goal (what ran in December), scored as % progress
 - **Team** — groups compete against groups (stretch goal for MVP)
 
-**Proof & verification:** photo, video, text, or auto-pulled from Strava. Peer verification with configurable modes — disputes pause a submission until an organizer resolves it. Undisputed submissions auto-approve after 48 hours.
+**Proof & verification:** Auto-pulled from Strava. Or photo, video, text with a admin/peer verification with configurable modes.
 
-**Stakes & settlement:** optional buy-in collected via Stripe Checkout at join time. On close, the app computes the settlement ledger and triggers automatic payouts to winners via Stripe Connect. No manual e-transfers — it's handled in-app.
+**Stakes & settlement:** optional buy-in collected via Stripe Checkout at join time. On close, the app computes the settlement ledger and triggers payouts to winner's wallets. Can request payouts.
 
 **Social layer:** per-challenge feed with emoji reactions, user profiles, badges, leaderboards, and 1-on-1 duels.
 
@@ -40,9 +40,9 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 |---|---|---|
 | **1 — Core loop** | Auth, challenge creation (head-to-head), join, proof submission, verification, leaderboard, feed | — |
 | **2 — Discovery + social** | Discovery tab, profiles, onboarding badge, Strava integration, 1-on-1 duels | — |
-| **3 — Stakes** | Stripe Checkout, Connect onboarding, ledger, auto-payouts | Legal review complete |
+| **3 — Stakes** | Stripe Checkout, ledger, payouts | Legal review complete |
 | **4 — More modes** | Collaborative, custom-per-person, email notifications | — |
-| **5 — Stretch** | Team challenges, co-admin, majority vote verification | Timeline permitting |
+| **5 — Stretch** | Team challenges, co-admin | Timeline permitting |
 
 ---
 
