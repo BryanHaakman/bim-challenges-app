@@ -77,6 +77,7 @@ No public/guest browsing beyond discovery previews — signup is required to joi
 
 ### 4.1 Create & Join a Challenge
 - Organizer sets: name, description, **mode** (head-to-head / collaborative / custom-per-person / team), goal type (streak, distance, time, dare), start/end date, **timezone** (defaults to organizer's browser timezone — used for all streak resets and deadline calculations for this challenge), proof rules, verification mode, stakes (optional), payout rule (if staked), visibility (public/private), team structure (if team mode)
+- **Challenge close is auto on `end_date`** (confirmed) — the app computes settlement automatically, no manual close button. Whether `end_date` is required for every challenge, or challenges can run open-ended, is still open — see Open Questions #12.
 - Any user can create a challenge — no gating
 - Join via: direct invite link (primary acquisition path — preview challenge details before any signup prompt), join code, or discovery tab
 - New-user signup is deferred until they actually initiate joining, not shown upfront
@@ -329,7 +330,9 @@ badges / user_badges
 
 6. ~~**Zero-completers pot: refund or alternative?**~~ **Resolved:** full pro-rata refund — voids the challenge's stake transactions entirely rather than routing to an organizer-chosen alternative.
 
-7. **Challenge close trigger: auto or manual?** The PRD assumes the challenge auto-closes on `end_date` and computes the settlement ledger automatically. Is there value in the organizer having a manual "close and settle" button — e.g., if the group wants to end early or extend by a day? Or is auto-close on end_date always the right call?
+7. ~~**Challenge close trigger: auto or manual?**~~ **Resolved:** auto-close on `end_date`, computing settlement automatically. No manual "close and settle" button for MVP.
+
+12. **Open-ended challenges / max duration cap.** Raised alongside #7: auto-close on `end_date` assumes every challenge has one. Should challenges be allowed to run open-ended (no `end_date`, e.g. an indefinite streak challenge)? If so, auto-close has nothing to trigger on. Alternative: require `end_date` but allow a long one, with an app-enforced max duration (candidate: 1 year) to bound how long standings/streaks/disputes stay live. Needs a decision before `end_date` can be made a required field in the schema.
 
 8. **Onboarding badge without Strava: alternative path or just skip it?** Users who don't connect Strava can't earn the onboarding badge as defined. Options: (a) skip it — they can earn future badges, (b) offer an alternative first-badge criteria (e.g., submit your first proof of any type), or (c) make the badge non-Strava-specific and change criteria to "complete any proof in your first week." Option (c) keeps the badge meaningful without requiring Strava.
 
