@@ -21,7 +21,7 @@ The app replaces the spreadsheet + group chat with structure — verified proof,
 
 ### ICP (Ideal Participant Profile)
 - **Who**: BIM's existing social circle — people who already know each other and already ran the December challenge informally. Not a general fitness-app audience, not a cold-acquisition product.
-- **Profile**: recreational endurance athletes / fitness enthusiasts, comfortable putting real money on the line with friends, already on Strava or willing to log manually
+- **Profile**: recreational endurance athletes / fitness enthusiasts, comfortable putting real money on the line with friends, on Strava or willing to sign up for it (Strava connection is mandatory — see §4.10)
 - **Platform**: mobile-first — submitting proof, checking the leaderboard, and reacting to the feed will mostly happen on a phone, not desktop
 - *(TBD — confirm with team: expected group/challenge size, and whether this stays scoped to one friend circle or there's near-term appetite to widen within BIM's broader following)*
 
@@ -158,7 +158,7 @@ Direct challenge between two users, using the same proof/verification/leaderboar
 ### 4.10 Onboarding
 First-run flow on signup: connect Strava + complete one logged Strava activity within the first week → awards first badge. Any Strava activity type counts (run, ride, swim, workout, etc.) with no minimum distance or duration.
 
-**Strava is optional, not mandatory.** Users who skip Strava connection can still join and participate in challenges using photo/video/text proof. They simply won't earn the onboarding badge and won't have Strava auto-verification available. The onboarding screen surfaces the Strava connection prominently but includes a clear "skip for now" path.
+**Strava is mandatory (confirmed) — resolves Open Questions #8.** Connecting Strava is a required step of signup, not skippable. There is no "skip for now" path and no non-Strava participation track. Manual proof types (photo/video/text, §4.3) remain in the schema for goal types Strava can't capture (e.g. dares), but every user must have a connected Strava account to use the app at all.
 
 ### 4.11 In-Challenge Social Feed
 The feed is visible to all challenge participants (and spectators for active-closed challenges). It is scoped per challenge — there is no global cross-challenge feed for MVP.
@@ -192,7 +192,7 @@ The feed is visible to all challenge participants (and spectators for active-clo
 | Withdrawal + no-refund default + manual Stripe refund override | P0 | |
 | Zero-completers auto-refund default | P0 | |
 | 1-on-1 duel challenges | P0 | Same engine, 2-participant scope |
-| Onboarding challenge + first badge | P0 | Strava optional; non-Strava users skip badge |
+| Onboarding challenge + first badge | P0 | Strava mandatory for all users — required at signup |
 | Custom-per-person goal mode | P1 | Can follow head-to-head/collaborative if needed |
 | Team-based challenges (2v2 etc.) | P1 | Stretch goal — first thing to cut if timeline slips |
 | Email notifications (dispute raised, challenge closing, results) | P1 | No push for MVP |
@@ -244,7 +244,7 @@ Branding and visual design aren't decided yet and need a deliberate pass before 
 
 ```
 users
-  id, email, display_name, avatar_url, strava_athlete_id, strava_tokens (encrypted),
+  id, email, display_name, avatar_url, strava_athlete_id (required), strava_tokens (encrypted, required),
   stripe_account_id (Connect account for receiving payouts),
   stripe_onboarding_complete (bool)
 
@@ -334,11 +334,11 @@ badges / user_badges
 
 12. **Open-ended challenges / max duration cap.** Raised alongside #7: auto-close on `end_date` assumes every challenge has one. Should challenges be allowed to run open-ended (no `end_date`, e.g. an indefinite streak challenge)? If so, auto-close has nothing to trigger on. Alternative: require `end_date` but allow a long one, with an app-enforced max duration (candidate: 1 year) to bound how long standings/streaks/disputes stay live. Needs a decision before `end_date` can be made a required field in the schema.
 
-8. **Onboarding badge without Strava: alternative path or just skip it?** Users who don't connect Strava can't earn the onboarding badge as defined. Options: (a) skip it — they can earn future badges, (b) offer an alternative first-badge criteria (e.g., submit your first proof of any type), or (c) make the badge non-Strava-specific and change criteria to "complete any proof in your first week." Option (c) keeps the badge meaningful without requiring Strava.
+8. ~~**Onboarding badge without Strava: alternative path or just skip it?**~~ **Resolved:** moot — Strava is mandatory for all users (see §4.10), so there's no non-Strava case to design around. No alternative badge criteria needed.
 
 9. ~~**Timezone default at challenge creation.**~~ **Resolved:** defaults to organizer's browser timezone, confirmed. Underlying streak/deadline computation stays anchored to the challenge's timezone, but the UI displays times converted to each viewer's own local timezone so it reads as the actual time in their zone.
 
-10. **Build order sign-off.** See §9 for the proposed phase breakdown — confirm this sequence works for the team before building starts.
+10. **Build order sign-off.** See §9 for the proposed phase breakdown — confirm this sequence works for the team before building starts. **Note:** now that Strava is mandatory for all users (§4.10, resolves #8), Phase 1's "no Strava" framing needs reconciling — either Strava OAuth moves into Phase 1 (since signup can't complete without it), or Phase 1 needs a placeholder/mocked signup path until Phase 2 ships real Strava OAuth. Flag this explicitly when confirming build order.
 
 11. **Branding/design approval timing.** See §6. Does the branding/design pass (discuss → draft directions in Claude Design → team approval) complete before Phase 1 build starts, or run in parallel with early Phase 1 work? Recommend locking the direction before UI-heavy Phase 1 work begins to avoid rebuilding screens against a changed direction.
 

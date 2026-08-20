@@ -16,7 +16,7 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 - **Custom-per-person** — everyone sets their own goal (what ran in December), scored as % progress
 - **Team** — groups compete against groups (stretch goal for MVP)
 
-**Proof & verification:** Auto-pulled from Strava. Or photo, video, text with a admin/peer verification with configurable modes.
+**Proof & verification:** Auto-pulled from Strava (mandatory for all users). Photo, video, and text proof still exist for goal types Strava can't capture (e.g. dares), verified via admin/peer verification with configurable modes.
 
 **Stakes & settlement:** optional buy-in collected via Stripe Checkout at join time. On close, the app computes the settlement ledger and triggers payouts to winner's wallets. Can request payouts.
 
@@ -61,7 +61,8 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 5. **Payments legal review** — needs to happen before Phase 3 starts, ideally in parallel with Phase 1–2.
 6. ~~**Zero-completers pot**~~ — Resolved: refund everyone (voids the challenge's stake transactions).
 7. ~~**Challenge close**~~ — Resolved: auto on end date.
-8. **Onboarding badge without Strava** — skip it, or alternative criteria for non-Strava users?
+8. ~~**Onboarding badge without Strava**~~ — Resolved: moot, Strava is mandatory for all users, no non-Strava case.
 9. **Open-ended challenges / max duration cap** — should challenges be allowed to run with no end date, or must every challenge have one (possibly capped, e.g. 1 year)?
+10. **Phase 1 build order vs. mandatory Strava** — Strava OAuth was planned for Phase 2, but signup can't complete without Strava now that it's mandatory. Needs reconciling before build order is signed off (see [`PRD.md §8.10`](./PRD.md)).
 
 See [`PRD.md §7`](./PRD.md) for full discussion on each.
