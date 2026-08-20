@@ -21,7 +21,7 @@ The app replaces the spreadsheet + group chat with structure — verified proof,
 
 ### ICP (Ideal Participant Profile)
 - **Who**: BIM's existing social circle — people who already know each other and already ran the December challenge informally. Not a general fitness-app audience, not a cold-acquisition product.
-- **Profile**: recreational endurance athletes / fitness enthusiasts, comfortable putting real money on the line with friends, already on Strava or willing to log manually
+- **Profile**: recreational endurance athletes / fitness enthusiasts, comfortable putting real money on the line with friends, on Strava or willing to sign up for it (Strava connection is mandatory — see §4.10)
 - **Platform**: mobile-first — submitting proof, checking the leaderboard, and reacting to the feed will mostly happen on a phone, not desktop
 - *(TBD — confirm with team: expected group/challenge size, and whether this stays scoped to one friend circle or there's near-term appetite to widen within BIM's broader following)*
 
@@ -52,7 +52,7 @@ The app replaces the spreadsheet + group chat with structure — verified proof,
 - Native mobile app (mobile-responsive web only)
 - Push notifications (email only)
 - Friends/follow system, direct messaging
-- Badge rules/catalog beyond the one onboarding badge (schema should support more, logic is phase 2)
+- Badge rules/catalog beyond the one onboarding badge, delivered via automated recurring challenges (schema should support it, logic/design is later phase — see §4.12)
 - AI/computer-vision proof verification
 - Training-plan adherence tracking for race-training groups
 - Content moderation tooling beyond manual organizer removal (trusted friend-group assumed)
@@ -67,6 +67,8 @@ The app replaces the spreadsheet + group chat with structure — verified proof,
 | **Co-admin** | Organizer can whitelist other participants as co-admins to help manage the challenge and resolve disputes |
 | **Participant** | Joins a challenge, submits proof, verifies/disputes others' proof |
 
+**Build team:** Bryan builds (vibe coding). Andrew gates technical structure/architecture approval. Tyler owns testing. Branding and MVP feature scope are agreed across all three.
+
 No public/guest browsing beyond discovery previews — signup is required to join a challenge, not required to preview a challenge via invite link.
 
 ---
@@ -75,6 +77,7 @@ No public/guest browsing beyond discovery previews — signup is required to joi
 
 ### 4.1 Create & Join a Challenge
 - Organizer sets: name, description, **mode** (head-to-head / collaborative / custom-per-person / team), goal type (streak, distance, time, dare), start/end date, **timezone** (defaults to organizer's browser timezone — used for all streak resets and deadline calculations for this challenge), proof rules, verification mode, stakes (optional), payout rule (if staked), visibility (public/private), team structure (if team mode)
+- **Challenge close is auto on `end_date`** (confirmed) — the app computes settlement automatically, no manual close button. Whether `end_date` is required for every challenge, or challenges can run open-ended, is still open — see Open Questions #12.
 - Any user can create a challenge — no gating
 - Join via: direct invite link (primary acquisition path — preview challenge details before any signup prompt), join code, or discovery tab
 - New-user signup is deferred until they actually initiate joining, not shown upfront
@@ -123,13 +126,14 @@ Four shapes, in priority order for MVP:
 - Custom: % progress toward each person's own target
 - Team: aggregated team score, ranked against other teams
 - **Streak reset timezone**: all streak reset windows (e.g. "must submit once per calendar day") use the **challenge's timezone**, set by the organizer at creation. A participant in Vancouver and one in Toronto are both on the challenge's clock — no per-participant timezone adjustment.
+- **Display vs. computation (confirmed):** the challenge timezone is authoritative for *computation only* (streak resets, deadlines, "days remaining"). Any timestamp shown to a user in the UI — deadlines, feed event times, "days remaining" — is **displayed converted to that viewer's own local timezone**, so it reads as the actual time where they are, even though the underlying reset/deadline logic stays anchored to the challenge's timezone.
 
 ### 4.6 Settle Up
 - **Stripe handles stake collection and payout** — participants pay their stake via Stripe Checkout at join time; funds are held and disbursed at challenge close via Stripe Connect
 - **Stripe Connect onboarding** is prompted **when a user joins a staked challenge**, not at challenge close. This gives users time to complete KYC before any payout is triggered. A user who hasn't completed Connect onboarding by the time payouts are computed will have their payout held and re-attempted once onboarding completes (up to 30 days, after which the organizer is notified to handle manually).
 - **Payout rule is organizer-configurable per challenge** (winner-take-all, split among all who completed their goal, or other) — not a single fixed app-wide rule
 - On challenge close, the server computes the settlement ledger and triggers Stripe payouts to winners automatically
-- **Zero-completers default**: if a staked challenge closes with no participants having completed their goal, the full pot is **refunded to all participants pro-rata** (each gets their stake back). This is the default. The organizer can override this at challenge creation to specify an alternative (e.g., pot goes to a charity, pot held for a rematch) — stored in `payout_rule` jsonb. *(See Open Questions #6.)*
+- **Zero-completers default (confirmed):** if a staked challenge closes with no participants having completed their goal, the challenge's stakes are **voided** — each participant's Stripe charge is refunded in full (pro-rata, everyone gets their stake back), rather than settling to a payout. No `payout_rule` override path is needed for this case since the team confirmed the refund default as-is.
 - **No refunds** if a participant drops out or goes quiet — stake stays in the pot by default
 - **Exception**: organizer can manually trigger a Stripe refund for legitimate cases (injury, group-agreed fairness) — separate override from the default no-refund rule
 - Two stake models: peer-funded (participants pay into their own pot via Stripe) and org-sponsored (BIM or sponsor funds a prize pool) — Stripe Connect handles disbursement for both. Prizes could also be physical goods (gear, nutrition, race entries) with manual fulfillment.
@@ -154,7 +158,7 @@ Direct challenge between two users, using the same proof/verification/leaderboar
 ### 4.10 Onboarding
 First-run flow on signup: connect Strava + complete one logged Strava activity within the first week → awards first badge. Any Strava activity type counts (run, ride, swim, workout, etc.) with no minimum distance or duration.
 
-**Strava is optional, not mandatory.** Users who skip Strava connection can still join and participate in challenges using photo/video/text proof. They simply won't earn the onboarding badge and won't have Strava auto-verification available. The onboarding screen surfaces the Strava connection prominently but includes a clear "skip for now" path.
+**Strava is mandatory (confirmed) — resolves Open Questions #8.** Connecting Strava is a required step of signup, not skippable. There is no "skip for now" path and no non-Strava participation track. Manual proof types (photo/video/text, §4.3) remain in the schema for goal types Strava can't capture (e.g. dares), but every user must have a connected Strava account to use the app at all.
 
 ### 4.11 In-Challenge Social Feed
 The feed is visible to all challenge participants (and spectators for active-closed challenges). It is scoped per challenge — there is no global cross-challenge feed for MVP.
@@ -166,6 +170,17 @@ The feed is visible to all challenge participants (and spectators for active-clo
 - Challenge state changes — challenge started, "X days remaining" reminders (daily at 3 days out), challenge closed
 
 **Reactions:** participants can react to any feed item with a fixed emoji set (e.g., 🔥 💪 👀 😬). No comments for MVP — reactions only.
+
+### 4.12 Automated Recurring Challenges
+**New — added to scope.** Beyond organizer-created challenges, the app auto-generates a rotating set of system challenges on a **daily / weekly / monthly cadence**, spanning varied goal types (streak, distance, time, dare) and varied modes (head-to-head, collaborative, etc.), each awarding a badge on completion. These give any user something to join at any time without waiting on an organizer, and extend the badge system past the single onboarding badge.
+
+**Still to design (raise with Andrew/Tyler):**
+- Who "organizes" a system-generated challenge — a dedicated BIM/system account, or no organizer/co-admin concept at all for these?
+- How are goal/mode/cadence combinations selected each cycle — a curated template pool, randomized, or admin-configured on a schedule?
+- Do system challenges support stakes, or are they always free/no-stake?
+- Are they always public/discoverable, with no private option?
+- How does this interact with the existing badge catalog item (§5, currently P2 "schema-ready, rules TBD") — this feature effectively is that catalog's delivery mechanism, not a separate thing.
+- Which phase this slots into — depends on badge catalog + multiple modes already existing, so likely Phase 4 or later; needs confirming as part of build order sign-off (§8 #10).
 
 ---
 
@@ -188,13 +203,14 @@ The feed is visible to all challenge participants (and spectators for active-clo
 | Withdrawal + no-refund default + manual Stripe refund override | P0 | |
 | Zero-completers auto-refund default | P0 | |
 | 1-on-1 duel challenges | P0 | Same engine, 2-participant scope |
-| Onboarding challenge + first badge | P0 | Strava optional; non-Strava users skip badge |
+| Onboarding challenge + first badge | P0 | Strava mandatory for all users — required at signup |
 | Custom-per-person goal mode | P1 | Can follow head-to-head/collaborative if needed |
 | Team-based challenges (2v2 etc.) | P1 | Stretch goal — first thing to cut if timeline slips |
 | Email notifications (dispute raised, challenge closing, results) | P1 | No push for MVP |
 | Co-admin whitelist per challenge | P1 | |
 | Majority vote verification mode | P2 | Quorum logic deferred |
-| Badge catalog beyond onboarding badge | P2 | Schema-ready, rules TBD |
+| Badge catalog beyond onboarding badge | P2 | Delivered via automated recurring challenges (§4.12) — schema-ready, design TBD |
+| Automated daily/weekly/monthly system challenges (varied goals/modes, badge rewards) | P2 | New — see §4.12 for open design questions |
 | AI/computer-vision proof verification | P2 | Phase 2/3 — design proof storage (esp. video) to not preclude this later |
 | Race-training group mode (adherence tracking) | P2 | Explicitly parked, noted for future |
 | Org-sponsored prize pools | P2 | Ledger model supports it; real build TBD |
@@ -240,12 +256,12 @@ Branding and visual design aren't decided yet and need a deliberate pass before 
 
 ```
 users
-  id, email, display_name, avatar_url, strava_athlete_id, strava_tokens (encrypted),
+  id, email, display_name, avatar_url, strava_athlete_id (required), strava_tokens (encrypted, required),
   stripe_account_id (Connect account for receiving payouts),
   stripe_onboarding_complete (bool)
 
 challenges
-  id, organizer_id, name, description,
+  id, organizer_id (nullable — null for system-generated, see §4.12), name, description,
   mode (head_to_head | collaborative | custom | team),
   goal_type (streak | distance | time | dare),
   start_date, end_date, timezone (IANA tz string, e.g. "America/Toronto"),
@@ -254,7 +270,9 @@ challenges
   verification_timeout_hours (int, default 48 — applies to auto_unless_challenged),
   stake_amount, payout_rule (jsonb),
   visibility (public | private), status (upcoming | active_open | active_closed | settling | closed),
-  join_code
+  join_code,
+  recurrence (none | daily | weekly | monthly, default none — drives §4.12 auto-generated challenges),
+  badge_id (nullable — badge awarded on completion, for automated challenges)
 
 challenge_admins
   id, challenge_id, user_id   -- co-admin whitelist
@@ -298,6 +316,7 @@ badges / user_badges
 ### Key architectural notes
 - **Server-authoritative math everywhere** — streaks, standings, ledger, never trust client values
 - **All time calculations use the challenge's `timezone` field** — streak resets, deadline enforcement, and "days remaining" calculations all operate in challenge-local time, not UTC and not participant-local time
+- **Client-side display converts to viewer-local time**: store/compute in UTC + challenge `timezone`, but render any user-facing timestamp (deadlines, feed events, "days remaining") in the viewing user's own browser timezone — computation and display are separate concerns
 - **Strava via webhook subscription**, not polling — matches activity to challenge rules server-side before auto-verifying; must support backfilled/past-dated activities within the challenge window; idempotent on `strava_activity_id`
 - **Strava webhook handles three event types**: `activity.create`, `activity.update`, `activity.delete` — all three must be handled. Update re-evaluates qualification; delete reverts proof to `rejected` and triggers standings recompute
 - **Disputed proof pauses standings recompute** for that participant until resolved
@@ -319,21 +338,25 @@ badges / user_badges
 
 3. **Custom-per-person goal mode: build alongside head-to-head/collaborative, or sequence it after?**
 
-4. **Who's building?** Confirm Andrew/Tyler's role — dev help vs. feature input only — to set a real timeline. Bryan happy to vibe code with support / review / feedback.
+4. ~~**Who's building?**~~ **Resolved:** Bryan is building (vibe coding). Andrew gates technical structure/architecture approval. Tyler owns testing. All three aligned on branding and MVP feature scope.
 
 5. **Payments legality + Stripe legal review — do this before building the payments phase.** Skill-based contests are generally legal and unregulated in Canada, distinct from chance-based gambling. With Stripe in MVP scope, a real legal consult is warranted before launch — especially for org-sponsored pools at scale. Stripe's ToS also requires review for prize/escrow flows specifically. This should happen in parallel with early build phases so it doesn't block launch.
 
-6. **Zero-completers pot: refund or alternative?** The PRD defaults to full pro-rata refund when no one completes a staked challenge. Two alternatives worth discussing: (a) pot rolls to the organizer to redistribute as they see fit, or (b) organizer specifies an override at challenge creation (e.g., "pot goes to a group charity run fund"). Confirm the refund default is acceptable or pick an alternative.
+6. ~~**Zero-completers pot: refund or alternative?**~~ **Resolved:** full pro-rata refund — voids the challenge's stake transactions entirely rather than routing to an organizer-chosen alternative.
 
-7. **Challenge close trigger: auto or manual?** The PRD assumes the challenge auto-closes on `end_date` and computes the settlement ledger automatically. Is there value in the organizer having a manual "close and settle" button — e.g., if the group wants to end early or extend by a day? Or is auto-close on end_date always the right call?
+7. ~~**Challenge close trigger: auto or manual?**~~ **Resolved:** auto-close on `end_date`, computing settlement automatically. No manual "close and settle" button for MVP.
 
-8. **Onboarding badge without Strava: alternative path or just skip it?** Users who don't connect Strava can't earn the onboarding badge as defined. Options: (a) skip it — they can earn future badges, (b) offer an alternative first-badge criteria (e.g., submit your first proof of any type), or (c) make the badge non-Strava-specific and change criteria to "complete any proof in your first week." Option (c) keeps the badge meaningful without requiring Strava.
+12. **Open-ended challenges / max duration cap.** Raised alongside #7: auto-close on `end_date` assumes every challenge has one. Should challenges be allowed to run open-ended (no `end_date`, e.g. an indefinite streak challenge)? If so, auto-close has nothing to trigger on. Alternative: require `end_date` but allow a long one, with an app-enforced max duration (candidate: 1 year) to bound how long standings/streaks/disputes stay live. Needs a decision before `end_date` can be made a required field in the schema.
 
-9. **Timezone default at challenge creation.** Defaults to organizer's browser timezone. Confirm this works for the group — any members who travel internationally for an extended period during a challenge would be on a different clock.
+8. ~~**Onboarding badge without Strava: alternative path or just skip it?**~~ **Resolved:** moot — Strava is mandatory for all users (see §4.10), so there's no non-Strava case to design around. No alternative badge criteria needed.
 
-10. **Build order sign-off.** See §9 for the proposed phase breakdown — confirm this sequence works for the team before building starts.
+9. ~~**Timezone default at challenge creation.**~~ **Resolved:** defaults to organizer's browser timezone, confirmed. Underlying streak/deadline computation stays anchored to the challenge's timezone, but the UI displays times converted to each viewer's own local timezone so it reads as the actual time in their zone.
+
+10. **Build order sign-off.** See §9 for the proposed phase breakdown — confirm this sequence works for the team before building starts. **Resolved sub-point:** Strava OAuth connect moves into Phase 1 (required for account creation itself, per §4.10); webhook subscription + retroactive backfill stay in Phase 2, since basic signup/connect is all Phase 1 needs.
 
 11. **Branding/design approval timing.** See §6. Does the branding/design pass (discuss → draft directions in Claude Design → team approval) complete before Phase 1 build starts, or run in parallel with early Phase 1 work? Recommend locking the direction before UI-heavy Phase 1 work begins to avoid rebuilding screens against a changed direction.
+
+13. **Automated recurring challenges — design specifics.** New scope item (§4.12): system-generated daily/weekly/monthly challenges with varied goals/modes, awarding badges. Needs: who "organizes" them, how goal/mode/cadence is selected each cycle (curated pool vs. randomized vs. admin-scheduled), whether they support stakes, whether they're always public, and which phase this slots into.
 
 ---
 
@@ -341,15 +364,15 @@ badges / user_badges
 
 Build in vertical slices — each phase should be demo-able end to end before the next starts. Later phases gate on Stripe legal review completing in parallel.
 
-**Phase 1 — Core loop (no money, no Strava)**
+**Phase 1 — Core loop (no money)**
 *Gated on: initial branding/design direction approved (see §6) — Phase 1 UI work builds against the approved design system.*
 
-Auth (email + Google) → user profile → challenge creation (head-to-head mode only) → join via link + join code → proof submission (photo/text) → peer verification (auto-unless-challenged, 48h timeout) → leaderboard → in-challenge feed with reactions
+Auth (email + Google) → **Strava OAuth connect (mandatory step of account creation, §4.10)** → user profile → challenge creation (head-to-head mode only) → join via link + join code → proof submission (photo/text) → peer verification (auto-unless-challenged, 48h timeout) → leaderboard → in-challenge feed with reactions
 
-*Exit criteria: a real challenge can be created, joined by multiple people, proofs submitted and verified, leaderboard updates correctly.*
+*Exit criteria: a real challenge can be created, joined by multiple people (all with connected Strava accounts), proofs submitted and verified, leaderboard updates correctly.*
 
 **Phase 2 — Discovery + social layer**
-Discovery tab with lifecycle filtering → public/private visibility → profile pages (badges, history, active challenges) → onboarding badge flow → Strava OAuth + webhook + backfill → 1-on-1 duel challenges
+Discovery tab with lifecycle filtering → public/private visibility → profile pages (badges, history, active challenges) → onboarding badge flow → Strava webhook subscription + retroactive backfill → 1-on-1 duel challenges
 
 *Exit criteria: new users can find and join challenges; Strava proof flows end to end; duels work.*
 
