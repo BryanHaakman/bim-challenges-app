@@ -59,7 +59,7 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 3. **Custom-per-person mode** — build in parallel with head-to-head/collaborative, or sequence after?
 4. ~~**Who's building?**~~ — Resolved: Bryan builds, Andrew gates technical structure, Tyler tests. Branding/MVP scope agreed.
 5. **Payments legal review** — needs to happen before Phase 3 starts, ideally in parallel with Phase 1–2.
-6. **Zero-completers pot** — refund everyone (proposed default) or organizer picks an alternative?
+6. ~~**Zero-completers pot**~~ — Resolved: refund everyone (voids the challenge's stake transactions).
 7. **Challenge close** — auto on end date, or manual organizer trigger?
 8. **Onboarding badge without Strava** — skip it, or alternative criteria for non-Strava users?
 

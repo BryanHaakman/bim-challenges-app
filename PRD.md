@@ -131,7 +131,7 @@ Four shapes, in priority order for MVP:
 - **Stripe Connect onboarding** is prompted **when a user joins a staked challenge**, not at challenge close. This gives users time to complete KYC before any payout is triggered. A user who hasn't completed Connect onboarding by the time payouts are computed will have their payout held and re-attempted once onboarding completes (up to 30 days, after which the organizer is notified to handle manually).
 - **Payout rule is organizer-configurable per challenge** (winner-take-all, split among all who completed their goal, or other) — not a single fixed app-wide rule
 - On challenge close, the server computes the settlement ledger and triggers Stripe payouts to winners automatically
-- **Zero-completers default**: if a staked challenge closes with no participants having completed their goal, the full pot is **refunded to all participants pro-rata** (each gets their stake back). This is the default. The organizer can override this at challenge creation to specify an alternative (e.g., pot goes to a charity, pot held for a rematch) — stored in `payout_rule` jsonb. *(See Open Questions #6.)*
+- **Zero-completers default (confirmed):** if a staked challenge closes with no participants having completed their goal, the challenge's stakes are **voided** — each participant's Stripe charge is refunded in full (pro-rata, everyone gets their stake back), rather than settling to a payout. No `payout_rule` override path is needed for this case since the team confirmed the refund default as-is.
 - **No refunds** if a participant drops out or goes quiet — stake stays in the pot by default
 - **Exception**: organizer can manually trigger a Stripe refund for legitimate cases (injury, group-agreed fairness) — separate override from the default no-refund rule
 - Two stake models: peer-funded (participants pay into their own pot via Stripe) and org-sponsored (BIM or sponsor funds a prize pool) — Stripe Connect handles disbursement for both. Prizes could also be physical goods (gear, nutrition, race entries) with manual fulfillment.
@@ -325,7 +325,7 @@ badges / user_badges
 
 5. **Payments legality + Stripe legal review — do this before building the payments phase.** Skill-based contests are generally legal and unregulated in Canada, distinct from chance-based gambling. With Stripe in MVP scope, a real legal consult is warranted before launch — especially for org-sponsored pools at scale. Stripe's ToS also requires review for prize/escrow flows specifically. This should happen in parallel with early build phases so it doesn't block launch.
 
-6. **Zero-completers pot: refund or alternative?** The PRD defaults to full pro-rata refund when no one completes a staked challenge. Two alternatives worth discussing: (a) pot rolls to the organizer to redistribute as they see fit, or (b) organizer specifies an override at challenge creation (e.g., "pot goes to a group charity run fund"). Confirm the refund default is acceptable or pick an alternative.
+6. ~~**Zero-completers pot: refund or alternative?**~~ **Resolved:** full pro-rata refund — voids the challenge's stake transactions entirely rather than routing to an organizer-chosen alternative.
 
 7. **Challenge close trigger: auto or manual?** The PRD assumes the challenge auto-closes on `end_date` and computes the settlement ledger automatically. Is there value in the organizer having a manual "close and settle" button — e.g., if the group wants to end early or extend by a day? Or is auto-close on end_date always the right call?
 
