@@ -338,7 +338,7 @@ badges / user_badges
 
 9. ~~**Timezone default at challenge creation.**~~ **Resolved:** defaults to organizer's browser timezone, confirmed. Underlying streak/deadline computation stays anchored to the challenge's timezone, but the UI displays times converted to each viewer's own local timezone so it reads as the actual time in their zone.
 
-10. **Build order sign-off.** See §9 for the proposed phase breakdown — confirm this sequence works for the team before building starts. **Note:** now that Strava is mandatory for all users (§4.10, resolves #8), Phase 1's "no Strava" framing needs reconciling — either Strava OAuth moves into Phase 1 (since signup can't complete without it), or Phase 1 needs a placeholder/mocked signup path until Phase 2 ships real Strava OAuth. Flag this explicitly when confirming build order.
+10. **Build order sign-off.** See §9 for the proposed phase breakdown — confirm this sequence works for the team before building starts. **Resolved sub-point:** Strava OAuth connect moves into Phase 1 (required for account creation itself, per §4.10); webhook subscription + retroactive backfill stay in Phase 2, since basic signup/connect is all Phase 1 needs.
 
 11. **Branding/design approval timing.** See §6. Does the branding/design pass (discuss → draft directions in Claude Design → team approval) complete before Phase 1 build starts, or run in parallel with early Phase 1 work? Recommend locking the direction before UI-heavy Phase 1 work begins to avoid rebuilding screens against a changed direction.
 
@@ -348,15 +348,15 @@ badges / user_badges
 
 Build in vertical slices — each phase should be demo-able end to end before the next starts. Later phases gate on Stripe legal review completing in parallel.
 
-**Phase 1 — Core loop (no money, no Strava)**
+**Phase 1 — Core loop (no money)**
 *Gated on: initial branding/design direction approved (see §6) — Phase 1 UI work builds against the approved design system.*
 
-Auth (email + Google) → user profile → challenge creation (head-to-head mode only) → join via link + join code → proof submission (photo/text) → peer verification (auto-unless-challenged, 48h timeout) → leaderboard → in-challenge feed with reactions
+Auth (email + Google) → **Strava OAuth connect (mandatory step of account creation, §4.10)** → user profile → challenge creation (head-to-head mode only) → join via link + join code → proof submission (photo/text) → peer verification (auto-unless-challenged, 48h timeout) → leaderboard → in-challenge feed with reactions
 
-*Exit criteria: a real challenge can be created, joined by multiple people, proofs submitted and verified, leaderboard updates correctly.*
+*Exit criteria: a real challenge can be created, joined by multiple people (all with connected Strava accounts), proofs submitted and verified, leaderboard updates correctly.*
 
 **Phase 2 — Discovery + social layer**
-Discovery tab with lifecycle filtering → public/private visibility → profile pages (badges, history, active challenges) → onboarding badge flow → Strava OAuth + webhook + backfill → 1-on-1 duel challenges
+Discovery tab with lifecycle filtering → public/private visibility → profile pages (badges, history, active challenges) → onboarding badge flow → Strava webhook subscription + retroactive backfill → 1-on-1 duel challenges
 
 *Exit criteria: new users can find and join challenges; Strava proof flows end to end; duels work.*
 

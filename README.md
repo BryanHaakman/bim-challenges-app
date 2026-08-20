@@ -38,8 +38,8 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 
 | Phase | What ships | Gate |
 |---|---|---|
-| **1 — Core loop** | Auth, challenge creation (head-to-head), join, proof submission, verification, leaderboard, feed | — |
-| **2 — Discovery + social** | Discovery tab, profiles, onboarding badge, Strava integration, 1-on-1 duels | — |
+| **1 — Core loop** | Auth, Strava OAuth connect (mandatory), challenge creation (head-to-head), join, proof submission, verification, leaderboard, feed | — |
+| **2 — Discovery + social** | Discovery tab, profiles, onboarding badge, Strava webhook + backfill, 1-on-1 duels | — |
 | **3 — Stakes** | Stripe Checkout, ledger, payouts | Legal review complete |
 | **4 — More modes** | Collaborative, custom-per-person, email notifications | — |
 | **5 — Stretch** | Team challenges, co-admin | Timeline permitting |
@@ -63,6 +63,5 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 7. ~~**Challenge close**~~ — Resolved: auto on end date.
 8. ~~**Onboarding badge without Strava**~~ — Resolved: moot, Strava is mandatory for all users, no non-Strava case.
 9. **Open-ended challenges / max duration cap** — should challenges be allowed to run with no end date, or must every challenge have one (possibly capped, e.g. 1 year)?
-10. **Phase 1 build order vs. mandatory Strava** — Strava OAuth was planned for Phase 2, but signup can't complete without Strava now that it's mandatory. Needs reconciling before build order is signed off (see [`PRD.md §8.10`](./PRD.md)).
 
 See [`PRD.md §7`](./PRD.md) for full discussion on each.
