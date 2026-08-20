@@ -52,7 +52,7 @@ The app replaces the spreadsheet + group chat with structure — verified proof,
 - Native mobile app (mobile-responsive web only)
 - Push notifications (email only)
 - Friends/follow system, direct messaging
-- Badge rules/catalog beyond the one onboarding badge (schema should support more, logic is phase 2)
+- Badge rules/catalog beyond the one onboarding badge, delivered via automated recurring challenges (schema should support it, logic/design is later phase — see §4.12)
 - AI/computer-vision proof verification
 - Training-plan adherence tracking for race-training groups
 - Content moderation tooling beyond manual organizer removal (trusted friend-group assumed)
@@ -171,6 +171,17 @@ The feed is visible to all challenge participants (and spectators for active-clo
 
 **Reactions:** participants can react to any feed item with a fixed emoji set (e.g., 🔥 💪 👀 😬). No comments for MVP — reactions only.
 
+### 4.12 Automated Recurring Challenges
+**New — added to scope.** Beyond organizer-created challenges, the app auto-generates a rotating set of system challenges on a **daily / weekly / monthly cadence**, spanning varied goal types (streak, distance, time, dare) and varied modes (head-to-head, collaborative, etc.), each awarding a badge on completion. These give any user something to join at any time without waiting on an organizer, and extend the badge system past the single onboarding badge.
+
+**Still to design (raise with Andrew/Tyler):**
+- Who "organizes" a system-generated challenge — a dedicated BIM/system account, or no organizer/co-admin concept at all for these?
+- How are goal/mode/cadence combinations selected each cycle — a curated template pool, randomized, or admin-configured on a schedule?
+- Do system challenges support stakes, or are they always free/no-stake?
+- Are they always public/discoverable, with no private option?
+- How does this interact with the existing badge catalog item (§5, currently P2 "schema-ready, rules TBD") — this feature effectively is that catalog's delivery mechanism, not a separate thing.
+- Which phase this slots into — depends on badge catalog + multiple modes already existing, so likely Phase 4 or later; needs confirming as part of build order sign-off (§8 #10).
+
 ---
 
 ## 5. Feature Set (MVP)
@@ -198,7 +209,8 @@ The feed is visible to all challenge participants (and spectators for active-clo
 | Email notifications (dispute raised, challenge closing, results) | P1 | No push for MVP |
 | Co-admin whitelist per challenge | P1 | |
 | Majority vote verification mode | P2 | Quorum logic deferred |
-| Badge catalog beyond onboarding badge | P2 | Schema-ready, rules TBD |
+| Badge catalog beyond onboarding badge | P2 | Delivered via automated recurring challenges (§4.12) — schema-ready, design TBD |
+| Automated daily/weekly/monthly system challenges (varied goals/modes, badge rewards) | P2 | New — see §4.12 for open design questions |
 | AI/computer-vision proof verification | P2 | Phase 2/3 — design proof storage (esp. video) to not preclude this later |
 | Race-training group mode (adherence tracking) | P2 | Explicitly parked, noted for future |
 | Org-sponsored prize pools | P2 | Ledger model supports it; real build TBD |
@@ -249,7 +261,7 @@ users
   stripe_onboarding_complete (bool)
 
 challenges
-  id, organizer_id, name, description,
+  id, organizer_id (nullable — null for system-generated, see §4.12), name, description,
   mode (head_to_head | collaborative | custom | team),
   goal_type (streak | distance | time | dare),
   start_date, end_date, timezone (IANA tz string, e.g. "America/Toronto"),
@@ -258,7 +270,9 @@ challenges
   verification_timeout_hours (int, default 48 — applies to auto_unless_challenged),
   stake_amount, payout_rule (jsonb),
   visibility (public | private), status (upcoming | active_open | active_closed | settling | closed),
-  join_code
+  join_code,
+  recurrence (none | daily | weekly | monthly, default none — drives §4.12 auto-generated challenges),
+  badge_id (nullable — badge awarded on completion, for automated challenges)
 
 challenge_admins
   id, challenge_id, user_id   -- co-admin whitelist
@@ -341,6 +355,8 @@ badges / user_badges
 10. **Build order sign-off.** See §9 for the proposed phase breakdown — confirm this sequence works for the team before building starts. **Resolved sub-point:** Strava OAuth connect moves into Phase 1 (required for account creation itself, per §4.10); webhook subscription + retroactive backfill stay in Phase 2, since basic signup/connect is all Phase 1 needs.
 
 11. **Branding/design approval timing.** See §6. Does the branding/design pass (discuss → draft directions in Claude Design → team approval) complete before Phase 1 build starts, or run in parallel with early Phase 1 work? Recommend locking the direction before UI-heavy Phase 1 work begins to avoid rebuilding screens against a changed direction.
+
+13. **Automated recurring challenges — design specifics.** New scope item (§4.12): system-generated daily/weekly/monthly challenges with varied goals/modes, awarding badges. Needs: who "organizes" them, how goal/mode/cadence is selected each cycle (curated pool vs. randomized vs. admin-scheduled), whether they support stakes, whether they're always public, and which phase this slots into.
 
 ---
 

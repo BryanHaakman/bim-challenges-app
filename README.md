@@ -22,6 +22,8 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 
 **Social layer:** per-challenge feed with emoji reactions, user profiles, badges, leaderboards, and 1-on-1 duels.
 
+**Automated challenges:** beyond organizer-created challenges, the app auto-generates a rotating set of daily/weekly/monthly system challenges — varied goals and modes — awarding badges on completion. See [`PRD.md §4.12`](./PRD.md) for design questions still open.
+
 ---
 
 ## Stack
@@ -63,5 +65,6 @@ A mobile-first web app where any BIM member can create a fitness challenge, invi
 7. ~~**Challenge close**~~ — Resolved: auto on end date.
 8. ~~**Onboarding badge without Strava**~~ — Resolved: moot, Strava is mandatory for all users, no non-Strava case.
 9. **Open-ended challenges / max duration cap** — should challenges be allowed to run with no end date, or must every challenge have one (possibly capped, e.g. 1 year)?
+10. **Automated recurring challenges — design specifics** — who organizes them, how goal/mode/cadence is picked each cycle, whether they support stakes, and which phase this slots into.
 
 See [`PRD.md §7`](./PRD.md) for full discussion on each.
